@@ -1,4 +1,6 @@
-# Maya Conformal Geometric Algebra Inverse Kinematics Solver
+# Maya CGA IK Solver
+This is a two-bone inverse kinematics solver based on a conformal geometric
+ algebra algorithm.
 
 ## Installation
 Copy the root folder (Ik2bCGA) to the Maya plug-ins directory.
