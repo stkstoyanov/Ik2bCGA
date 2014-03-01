@@ -1,3 +1,4 @@
+#include <iostream>
 #include "cga.h"
 
 namespace cga
@@ -41,6 +42,13 @@ cb sphere(const cv& _v, const double& _r)
 {
   cs r = _r;
   auto s = _v+0.5*(_v*_v - r*r)*einf+e0;
+  return s;
+}
+
+cb sphere(const cb& _p, const double& _r)
+{
+  cs r = _r;
+  auto s = _p - 0.5*r*r*einf;
   return s;
 }
 

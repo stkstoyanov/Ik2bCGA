@@ -5,8 +5,9 @@ import maya.OpenMaya as OpenMaya
 
 fileName = inspect.getfile(inspect.currentframe())
 currDir = os.path.dirname(os.path.abspath(fileName))
-libFile = '/lib/libIk2bCGA.so'
-lib = ctypes.CDLL(currDir + libFile)
+libFile = 'lib/libIk2bCGA.so'
+libFileDir = os.path.join(currDir, '..', libFile)
+lib = ctypes.CDLL(libFileDir)
 
 class VectorPx(ctypes.Structure):
     _fields_ = [

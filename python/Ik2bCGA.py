@@ -94,8 +94,8 @@ class Ik2bCGA(OpenMayaMPx.MPxIkSolverNode):
                               ) * shMatrix
 
         rotations = self._SOLVER.solveIK(shoulder, elbow, wrist, goal, pole)
-        fnShoulderJnt.rotateBy(rotations[0], OpenMaya.MSpace.kTransform)
-        fnElbowJnt.rotateBy(rotations[1], OpenMaya.MSpace.kTransform)
+        #fnShoulderJnt.rotateBy(rotations[0], OpenMaya.MSpace.kTransform)
+        #fnElbowJnt.rotateBy(rotations[1], OpenMaya.MSpace.kTransform)
 
         '''
         # Debugging Information

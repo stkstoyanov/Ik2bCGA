@@ -1,4 +1,4 @@
-project(GaaletTests)
+project(gaalet_tests)
 
 set(${PROJECT_NAME}_VERSION_MAJOR 0)
 set(${PROJECT_NAME}_VERSION_MINOR 0)
@@ -12,7 +12,7 @@ set(
 
 set(
      SRC_DIR
-     ${SRC_ROOT}/main.cpp
+     main.cpp
      ${SRC_ROOT}/cga.cpp
    )
 

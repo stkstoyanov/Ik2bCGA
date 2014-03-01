@@ -1,0 +1,218 @@
+#include <iostream>
+#include <cmath>
+
+struct VectorPx
+{
+  double x;
+  double y;
+  double z;
+  bool operator==(const VectorPx& _rhs) const
+  {
+    return _rhs.x == x && _rhs.y == y && _rhs.z == z;
+  }
+};
+
+struct QuaternionPx
+{
+  double x;
+  double y;
+  double z;
+  double w;
+};
+
+extern "C"
+void solveIK(
+             const VectorPx& _shoulder,
+             const VectorPx& _elbow,
+             const VectorPx& _wrist,
+             const VectorPx& _goal,
+             const VectorPx& _pole,
+             QuaternionPx& o_shoulderRot,
+             QuaternionPx& o_elbowRot
+             /*
+             const double _twist,
+             */
+            )
+{
+#pragma gpc begin
+  typedef const double freal;
+
+  freal sx = _shoulder.x;
+  freal sy = _shoulder.y;
+  freal sz = _shoulder.z;
+
+  freal ex = _elbow.x;
+  freal ey = _elbow.y;
+  freal ez = _elbow.z;
+
+  freal wx = _wrist.x;
+  freal wy = _wrist.y;
+  freal wz = _wrist.z;
+
+  freal gx = _goal.x;
+  freal gy = _goal.y;
+  freal gz = _goal.z;
+
+  freal px = _pole.x;
+  freal py = _pole.y;
+  freal pz = _pole.z;
+  
+  #pragma clucalc begin
+    // setting up the initial vectors
+    V_S = sx*e1 + sy*e2 + sz*e3; // shoulder vector
+    V_E = ex*e1 + ey*e2 + ez*e3; // elbow vector
+    V_W = wx*e1 + wy*e2 + wz*e3; // wrist vector
+    V_G = gx*e1 + gy*e2 + gz*e3; // goal vector
+
+    // compute distances
+    V_SE = V_E - V_S;
+    V_EW = V_W - V_E;
+    V_SG = V_G - V_S;
+    ?ds=sqrt(abs(V_SE*V_SE)); // shoulder-elbow distance
+    ?dw=sqrt(abs(V_EW*V_EW)); // elbow-wrist distance
+    ?dg=sqrt(abs(V_SG*V_SG)); // shoulder-goal distance
+
+    // setting up the initial points
+    ?P_S=VecN3(sx, sy, sz); // shoulder point
+    ?P_E=VecN3(ex, ey, ez); // elbow point
+    ?P_W=VecN3(wx, wy, wz); // wrist point
+    ?P_G=VecN3(gx, gy, gz); // goal point
+    ?P_P=VecN3(px, py, pz); // pole point
+    //if (dg <= (ds+dw)) {
+    //  ?P_G=VecN3(gx, gy, gz); // goal point
+    //} else {
+    //  P_GN = (V_G)*(ds+dw)/dg; // corrected goal vector
+    //  ?P_G = P_GN + 0.5*P_GN*P_GN*einf + e0; // corrected goal point
+    //}
+
+    // compute goal elbow point
+    S_S=P_S-0.5*ds*ds*einf; // shoulder sphere
+    S_G=P_G-0.5*dw*dw*einf; // goal sphere
+    C_E=S_S^S_G;
+    // swivel intersection plane
+    ?Pl_Swivel=*(P_S^P_E^P_G^einf);
+    Pp_E=C_E^Pl_Swivel;
+    // flip the sign of the square root to get the second point
+    dPp_E = *Pp_E;
+    ?P_EG=(-dPp_E - sqrt(abs(dPp_E.dPp_E)))/(einf.dPp_E);
+
+    // original elbow angle
+    ?L_SE_O = *(P_S^P_E^einf);
+    ?L_EW_O = *(P_E^P_W^einf);
+    ?cos_Elb_O = ((*L_SE_O).(*L_EW_O)) / (ds*dw);
+    // goal elbow angle
+    ?L_SE = *(P_S^P_EG^einf);
+    ?L_EW = *(P_EG^P_G^einf);
+    ?cos_Elb_G = ((*L_SE).(*L_EW)) / (ds*dw);
+
+    // shoulder quaternion
+    Pl_Mid = P_E-P_EG;
+    Pl_Elbow = *(P_S^P_E^P_EG^einf);
+    ?L_Mid = Pl_Elbow^Pl_Mid;
+    ?L_MidAbs = L_Mid.(~L_Mid);
+  #pragma clucalc end
+    freal L_MidNorm = std::sqrt(std::abs(mv_get_bladecoeff(L_MidAbs, 1)));
+  #pragma clucalc begin
+    // first rotation quaternion
+    ?Q_12=L_Mid / L_MidNorm;
+    // vertical plane through the shoulder-elbow line
+    Pl_XY=e3;
+    // rotated plane through the shoulder-elbow line
+    ?Pl_XYR = (Q_12*Pl_XY)/Q_12;
+    ?Pl_Swivel_Abs = (*Pl_Swivel).(~(*Pl_Swivel));
+    ?Pl_XYR_Abs = (*Pl_XYR).(~(*Pl_XYR));
+  #pragma clucalc end
+    freal Pl_Swivel_Norm = std::sqrt(
+      std::abs(mv_get_bladecoeff(Pl_Swivel_Abs, 1)));
+    freal Pl_XYR_Norm = std::sqrt(std::abs(mv_get_bladecoeff(Pl_XYR_Abs, 1)));
+  #pragma clucalc begin
+    sign = Pl_XYR.P_G;
+    cos_sign = sign / abs(sign);
+    cos_X = ((*Pl_XYR).(*Pl_Swivel)) / (Pl_XYR_Norm*Pl_Swivel_Norm);
+    Q_3 = cos_sign*sqrt((1+cos_X)/2) + sqrt((1-cos_X)/2)*(e3^e2);
+    ?Q_S = Q_12 * Q_3;
+  #pragma clucalc end
+
+  if (!(_wrist == _goal))
+  {
+    freal cos_EO = mv_get_bladecoeff(cos_Elb_O,1); 
+    freal cos_EG = mv_get_bladecoeff(cos_Elb_G,1); 
+    // finding the difference between the original elbow angle and the goal
+    freal cos_E = cos(acos(cos_EG) - acos(cos_EO));
+    // calculating the elbow goal quaternion
+    o_elbowRot.x = 0;
+    o_elbowRot.y = -sqrt((1-cos_E)/2.0);
+    o_elbowRot.z = 0;
+    o_elbowRot.w = sqrt((1+cos_E)/2.0);
+
+    // shoulder quaternion output
+    o_shoulderRot.x = mv_get_bladecoeff(-Q_S, e2^e3);
+    o_shoulderRot.y = mv_get_bladecoeff(Q_S, e1^e3);
+    o_shoulderRot.z = mv_get_bladecoeff(-Q_S, e1^e2);
+    o_shoulderRot.w = mv_get_bladecoeff(Q_S, 1);
+  }
+  else
+  {
+    o_elbowRot.x = 0;
+    o_elbowRot.y = 0;
+    o_elbowRot.z = 0;
+    o_elbowRot.w = 1;
+
+    o_shoulderRot.x = 0;
+    o_shoulderRot.y = 0;
+    o_shoulderRot.z = 0;
+    o_shoulderRot.w = 1;
+  }
+
+  // Debugging Information
+  std::cout << "Joint Lengths: ";
+  std::cout << mv_get_bladecoeff(ds, 1) << " ";
+  std::cout << mv_get_bladecoeff(dw, 1) << " ";
+  std::cout << std::endl;
+
+  std::cout << "Elbow Goal: ";
+  std::cout << mv_get_bladecoeff(P_EG, e1) << " ";
+  std::cout << mv_get_bladecoeff(P_EG, e2) << " ";
+  std::cout << mv_get_bladecoeff(P_EG, e3);
+  std::cout << std::endl;
+
+  /*
+  std::cout << "Elbow: ";
+  std::cout << mv_get_bladecoeff(Pe, e1) << " ";
+  std::cout << mv_get_bladecoeff(Pe, e2) << " ";
+  std::cout << mv_get_bladecoeff(Pe, e3) << std::endl;
+
+  std::cout << "Wrist: ";
+  std::cout << mv_get_bladecoeff(Pw, e1) << " ";
+  std::cout << mv_get_bladecoeff(Pw, e2) << " ";
+  std::cout << mv_get_bladecoeff(Pw, e3) << std::endl;
+
+  std::cout << "Goal: ";
+  std::cout << mv_get_bladecoeff(Pg, e1) << " ";
+  std::cout << mv_get_bladecoeff(Pg, e2) << " ";
+  std::cout << mv_get_bladecoeff(Pg, e3) << std::endl;
+
+  std::cout << "Pole: ";
+  std::cout << mv_get_bladecoeff(Pp, e1) << " ";
+  std::cout << mv_get_bladecoeff(Pp, e2) << " ";
+  std::cout << mv_get_bladecoeff(Pp, e3) << std::endl;
+  */
+
+  /*
+  std::cout << "Elbow Original Cosine: ";
+  std::cout << cos_EO;
+  std::cout << std::endl;
+
+  std::cout << "Elbow Goal Cosine: ";
+  std::cout << cos_EG;
+  std::cout << std::endl;
+
+  std::cout << "Elbow Final Cosine: ";
+  std::cout << cos_E;
+  std::cout << std::endl;
+
+  */
+  std::cout << "-------------------------------------------------------------";
+  std::cout << std::endl;
+#pragma gpc end
+}

@@ -1,7 +1,6 @@
 #ifndef _CGA_H_
 #define _CGA_H_
 
-#include <iostream>
 #include <string>
 #include "gaalet.h"
 
@@ -30,6 +29,7 @@ cb sphere(
           const double& _r
          );
 cb sphere(const cv& _v, const double& _r);
+cb sphere(const cb& _p, const double& _r);
 double getX(const cb& _v);
 double getY(const cb& _v);
 double getZ(const cb& _v);
