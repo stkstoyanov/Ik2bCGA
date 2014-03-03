@@ -10,6 +10,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 find_package(GPC)
 if (GPC_FOUND)
   add_subdirectory(src/gaalop_solver)
+  add_subdirectory(src/gaalop_tests)
 endif (GPC_FOUND)
 
 add_subdirectory(src/gaalet_solver)

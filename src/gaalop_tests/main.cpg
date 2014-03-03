@@ -1,0 +1,54 @@
+#include <iostream>
+#include <cmath>
+
+using namespace std;
+
+int main()
+{
+#pragma gpc begin
+  #pragma clucalc begin
+    r = 1;
+    p_S = VecN3(0,0,0);
+    p_E = VecN3(1,0,0);
+    p_G = VecN3(1,0.5,1);
+    p_P = VecN3(0,0,1);
+    s_S = p_S - 0.5*r*r*einf;
+    s_G = p_G - 0.5*r*r*einf;
+    ?c_E = s_S^s_G;
+    l_G = *(p_S^p_G^einf);
+    ?pl_Swivel = *(p_P^p_G^p_S^einf);
+
+    a = VecN3(1,0,0);
+    b = VecN3(-0.5,0,0.5);
+    c = VecN3(-0.5,0,-0.5);
+    l_R = *(b^c^einf);
+    ?f = l_R*a*(~l_R);
+  #pragma clucalc end
+    double swivel_x = mv_get_bladecoeff(pl_Swivel, e1);
+    double swivel_y = mv_get_bladecoeff(pl_Swivel, e2);
+    double swivel_z = mv_get_bladecoeff(pl_Swivel, e3);
+  #pragma clucalc begin
+    v_SwivelNorm = swivel_x*e1 + swivel_y*e2 + swivel_z*e3;
+    pp_E = *(c_E^pl_Swivel);
+    ?p_EG = (-pp_E + sqrt(abs(pp_E.pp_E))) / (einf.pp_E);
+  #pragma clucalc end
+    cout << "Gaalop: ";
+    cout << mv_get_bladecoeff(p_EG, e1) << ", ";
+    cout << mv_get_bladecoeff(p_EG, e2) << ", ";
+    cout << mv_get_bladecoeff(p_EG, e3);
+    cout << endl;
+
+    cout << "Normal: ";
+    cout << mv_get_bladecoeff(pl_Swivel, e1) << ", ";
+    cout << mv_get_bladecoeff(pl_Swivel, e2) << ", ";
+    cout << mv_get_bladecoeff(pl_Swivel, e3);
+    cout << endl;
+
+    cout << "Reflected: ";
+    cout << mv_get_bladecoeff(f, e1) << ", ";
+    cout << mv_get_bladecoeff(f, e2) << ", ";
+    cout << mv_get_bladecoeff(f, e3);
+    cout << endl;
+#pragma gpc end
+  return 0;
+}
