@@ -50,8 +50,8 @@ class SolverPx(object):
         wr = VectorPx(wrist.x, wrist.y, wrist.z)
         g = VectorPx(goal.x, goal.y, goal.z)
         p = VectorPx(pole.x, pole.y, pole.z)
-        shRot = QuaternionPx()
         elbRot = QuaternionPx()
+        shRot = QuaternionPx()
 
         lib.solveIK(
                     ctypes.byref(sh),
@@ -59,8 +59,8 @@ class SolverPx(object):
                     ctypes.byref(wr),
                     ctypes.byref(g),
                     ctypes.byref(p),
-                    ctypes.byref(shRot),
-                    ctypes.byref(elbRot)
+                    ctypes.byref(elbRot),
+                    ctypes.byref(shRot)
                    )
 
-        return (shRot.toMQuaternion(), elbRot.toMQuaternion())
+        return (elbRot.toMQuaternion(), shRot.toMQuaternion())

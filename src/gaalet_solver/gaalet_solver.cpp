@@ -190,7 +190,7 @@ void solveIK(
     cv v_P = {_pole.x,_pole.y,_pole.z};
 
     // compute distances
-    cv v_SE = v_E - v_S;
+    cv v_SE = v_E - v_S; // 
     cv v_EW = v_W - v_E;
     cv v_SG = v_G - v_S;
     cs se_d = magnitude(v_SE); // shoulder-elbow distance

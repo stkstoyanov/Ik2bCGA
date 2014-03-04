@@ -19,10 +19,12 @@ int main()
     ?pl_Swivel = *(p_P^p_G^p_S^einf);
 
     a = VecN3(1,0,0);
-    b = VecN3(-0.5,0,0.5);
-    c = VecN3(-0.5,0,-0.5);
-    l_R = *(b^c^einf);
-    ?f = l_R*a*(~l_R);
+    b = VecN3(-0.5,0,5);
+    c = VecN3(-0.5,0,-5);
+    l = *(b^c^einf);
+    ?l_n = sqrt(abs(l.(~l)));
+    l_R = l / l_n;
+    ?f = l_R*a/l_R;
   #pragma clucalc end
     double swivel_x = mv_get_bladecoeff(pl_Swivel, e1);
     double swivel_y = mv_get_bladecoeff(pl_Swivel, e2);
@@ -49,6 +51,8 @@ int main()
     cout << mv_get_bladecoeff(f, e2) << ", ";
     cout << mv_get_bladecoeff(f, e3);
     cout << endl;
+
+    cout << l_n << endl;
 #pragma gpc end
   return 0;
 }

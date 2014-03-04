@@ -1,54 +1,13 @@
 #include <iostream>
 #include <cmath>
+#include "proxy.h"
+
+#define float double
+#define abs fabs
+#define sqrtf sqrt
 
 #define radians(angleDegrees) (angleDegrees * M_PI / 180.0)
- 
 #define degrees(angleRadians) (angleRadians * 180.0 / M_PI)
-
-struct VectorPx
-{
-  double x;
-  double y;
-  double z;
-
-  VectorPx(){;}
-  VectorPx(double _x, double _y, double _z):
-    x(_x), y(_y), z(_z) {;}
-
-  bool operator==(const VectorPx& _rhs) const
-  {
-    return _rhs.x == x && _rhs.y == y && _rhs.z == z;
-  }
-
-  void show() const
-  {
-    std::cout << x << ", ";
-    std::cout << y << ", ";
-    std::cout << z;
-    std::cout << std::endl;
-  }
-};
-
-struct QuaternionPx
-{
-  double x;
-  double y;
-  double z;
-  double w;
-
-  QuaternionPx(){;}
-  QuaternionPx(double _x, double _y, double _z, double _w):
-    x(_x), y(_y), z(_z), w(_w) {;}
-
-  void show() const
-  {
-    std::cout << x << ", ";
-    std::cout << y << ", ";
-    std::cout << z << ", ";
-    std::cout << w;
-    std::cout << std::endl;
-  }
-};
 
 extern "C"
 void solveIK(
@@ -90,8 +49,8 @@ void solveIK(
   #pragma clucalc begin
   // setting up the initial vectors
   ?v_S = sx*e1 + sy*e2 + sz*e3; // shoulder vector
-  v_E = ex*e1 + ey*e2 + ez*e3; // elbow vector
-  v_W = wx*e1 + wy*e2 + wz*e3; // wrist vector
+  ?v_E = ex*e1 + ey*e2 + ez*e3; // elbow vector
+  ?v_W = wx*e1 + wy*e2 + wz*e3; // wrist vector
   ?v_G = gx*e1 + gy*e2 + gz*e3; // goal vector
   ?v_P = px*e1 + py*e2 + pz*e3; // pole vector
 
@@ -139,11 +98,11 @@ void solveIK(
 
   #pragma clucalc begin
   // setting up the initial points
-  ?p_S=VecN3(sx, sy, sz); // shoulder point
-  ?p_E=VecN3(ex, ey, ez); // elbow point
-  p_W=VecN3(wx, wy, wz); // wrist point
-  p_G=VecN3(gx, gy, gz); // goal point
-  p_P=VecN3(px, py, pz); // pole point
+  ?p_S = VecN3(sx, sy, sz); // shoulder point
+  ?p_E = VecN3(ex, ey, ez); // elbow point
+  p_W = VecN3(wx, wy, wz); // wrist point
+  p_G = VecN3(gx, gy, gz); // goal point
+  p_P = VecN3(px, py, pz); // pole point
 
   //if (dg <= (ds+dw)) {
   //  ?P_G=VecN3(gx, gy, gz); // goal point
@@ -153,81 +112,66 @@ void solveIK(
   //}
 
   // compute goal elbow point
-  s_S=p_S-0.5*se_d*se_d*einf; // shoulder sphere
-  s_G=p_G-0.5*ew_d*ew_d*einf; // goal sphere
-  c_E=s_S^s_G;
+  s_S = p_S - 0.5*se_d*se_d*einf; // shoulder sphere
+  s_G = p_G - 0.5*ew_d*ew_d*einf; // goal sphere
+  c_E = s_S^s_G;
   // swivel intersection plane
-  pl_Swivel=*(p_P^p_G^p_S^einf);
+  pl_Swivel = *(p_P^p_G^p_S^einf);
   // determine which point to pick
-  p_sign_t = (-(e2^v_P)*I3).v_G;
-  ?p_sign = p_sign_t / abs(p_sign_t);
   pp_E=*(c_E^pl_Swivel);
   // flip the sign of the square root to get the second point
-  ?p_EG = (-p_sign*sqrt(abs(pp_E.pp_E)) - pp_E) / (einf.pp_E);
+  ?p_EG = (sqrt(abs(pp_E.pp_E)) - pp_E) / (einf.pp_E);
+  ?p_EG1 = (-sqrt(abs(pp_E.pp_E)) - pp_E) / (einf.pp_E);
 
   // shoulder YZ quaternion
   pl_Mid = p_E - p_EG;
   pl_Elbow = *(p_S^p_E^p_EG^einf);
   l_Mid = pl_Elbow^pl_Mid;
   l_MidN = sqrt(abs(l_Mid.(~l_Mid)));
-  // first rotation quaternion
+  // YZ shoulder rotation quaternion
   ?q_12 = l_Mid / l_MidN;
-  ?p_WR = q_12*p_W/q_12;
+  // X rotation cosine
+  p_WR = q_12*p_W*(~q_12);
+  l_EG = *(p_EG^p_G^einf) / ew_d;
+  pl_YZ = *(p_WR^p_EG^p_S^einf);
+  yz_n = sqrt(abs(pl_YZ.(~pl_YZ)));
+  swivel_n = sqrt(abs(pl_Swivel.(~pl_Swivel)));
+  ?pl_Swivel_n = pl_Swivel / swivel_n;
+  ?pl_YZ_n = pl_YZ / yz_n;
   #pragma clucalc end
-  freal v_EGx = p_EG[0];
-  freal v_EGy = p_EG[1];
-  freal v_EGz = p_EG[2];
+  freal v_EGx = mv_get_bladecoeff(p_EG, e1);
+  freal v_EGy = mv_get_bladecoeff(p_EG, e2);
+  freal v_EGz = mv_get_bladecoeff(p_EG, e3);
 
-  freal v_WRx = p_WR[1];
-  freal v_WRy = p_WR[2];
-  freal v_WRz = p_WR[3];
-  /*
-  // vertical plane through the shoulder-elbow line
-  pl_SY=-(e2^v_E)*I3;
-  // rotated plane through the shoulder-elbow line
-  pl_SYR = (q_12*pl_SY)/q_12;
-  pl_SwivelN = sqrt(abs(pl_Swivel.(~pl_Swivel)));
-  pl_SYRN = sqrt(abs(pl_SYR.(~pl_SYR)));
-  sign = pl_SYR.p_G;
-  cos_sign = sign / abs(sign);
-  ?cos_x = (pl_SYR.pl_Swivel) / (pl_SYRN*pl_SwivelN);
-  cos_q_3 = 0;
-  sin_q_3 = -1;
-  */
+  freal v_Swivelx = mv_get_bladecoeff(pl_Swivel_n, e1);
+  freal v_Swively = mv_get_bladecoeff(pl_Swivel_n, e2);
+  freal v_Swivelz = mv_get_bladecoeff(pl_Swivel_n, e3);
+
+  freal v_YZx = mv_get_bladecoeff(pl_YZ_n, e1);
+  freal v_YZy = mv_get_bladecoeff(pl_YZ_n, e2);
+  freal v_YZz = mv_get_bladecoeff(pl_YZ_n, e3);
   #pragma clucalc begin
   v_EG = v_EGx*e1 + v_EGy*e2 + v_EGz*e3;
-  v_WR = v_WRx*e1 + v_WRy*e2 + v_WRz*e3;
-  v_EWR = v_WR - v_EG;
-  v_EWG = v_G - v_EG;
-  v_EWR_n = v_EWR / sqrt(abs(v_EWR*v_EWR));
-  v_EWG_n = v_EWG / sqrt(abs(v_EWG*v_EWG));
-  // q_3 cosine sign
-  ?cos_x = v_EWR_n.v_EWG_n;
-  v_cross_n = -(v_EWR_n^v_EWG_n)*I3;
-  ?cos_sign = -(v_EG - v_S).v_cross_n;
+  v_Swivel = v_Swivelx*e1 + v_Swively*e2 + v_Swivelz*e3;
+  v_YZ = v_YZx*e1 + v_YZy*e2 + v_YZz*e3;
+  cross = -(v_Swivel^v_YZ)*I3;
+  ?sin_thetax = sqrt(abs(cross*cross));
+  ?cos_thetax = v_Swivel.v_YZ;
+  ?q_sign = (v_EG - v_S).cross;
   #pragma clucalc end
-  freal angle_x;
-  if (cos_x <= -1.0)
-    angle_x = M_PI;
-  else if (cos_x >= 1.0)
-    angle_x = 0.0;
-  else
-    angle_x = acos(cos_x);
-  freal cos_3 = cos(angle_x/2);
-  freal sin_3 = sin(angle_x/2);
-
-  if (cos_x <= -1.0)
-    cos_x = -1;
-  if (cos_x >= 1.0)
-    cos_x = 1;
-  cos_sign = cos_sign ? cos_sign / fabs(cos_sign) : 1;
+  freal thetax = atan2(sin_thetax, cos_thetax);
+  if (q_sign < 0.0)
+    thetax = -thetax;
+  freal q_3_cos = cos(0.5*thetax);
+  freal q_3_sin = sin(0.5*thetax);
   #pragma clucalc begin
-  l_SE = *(p_S^p_E^einf) / se_d;
-  ?q_3 = cos_sign*sqrt(0.5*(1+cos_x)) + sqrt(0.5*(1-cos_x))*l_SE;
-  //?q_3 = cos_3 + sin_3*l_SE;
+  //?cos_x = (pl_YZ.pl_Swivel) / (yz_n*swivel_n);
+  ?l_SE = *(p_S^p_E^einf) / se_d;
+  // Y shoulder rotation quaternion
+  //?q_3 = sqrt(0.5*(1+cos_x)) + sqrt(0.5*(1-cos_x))*l_SE;
+  q_3 = q_3_cos + q_3_sin*l_SE;
   ?q_S = q_12*(~q_3);
   #pragma clucalc end
-
   if (!(_wrist == _goal))
   {
     // shoulder quaternion output
@@ -235,12 +179,6 @@ void solveIK(
     o_shoulderRot.y = mv_get_bladecoeff(q_S, e1^e3);
     o_shoulderRot.z = -mv_get_bladecoeff(q_S, e1^e2);
     o_shoulderRot.w = mv_get_bladecoeff(q_S, 1);
-
-    std::cout << "X Quaternion: ";
-    std::cout << -mv_get_bladecoeff(q_3, e2^e3) << ", ";
-    std::cout << mv_get_bladecoeff(q_3, e1^e3) << ", ";
-    std::cout << -mv_get_bladecoeff(q_3, e1^e2) << ", ";
-    std::cout << mv_get_bladecoeff(q_3, 1) << std::endl;
   }
   else
   {
@@ -249,22 +187,21 @@ void solveIK(
     o_shoulderRot.z = 0;
     o_shoulderRot.w = 1;
   }
-
-  std::cout << "Goal Elbow Point: ";
+  // Debugging Information
+  
+  std::cout << "Solved Elbow: ";
   std::cout << p_EG[0] << ", ";
   std::cout << p_EG[1] << ", ";
   std::cout << p_EG[2];
   std::cout << std::endl;
 
-  std::cout << "Rotated Wrist: ";
-  std::cout << p_WR[1] << ", ";
-  std::cout << p_WR[2] << ", ";
-  std::cout << p_WR[3];
+  std::cout << "Alternative Elbow: ";
+  std::cout << p_EG1[0] << ", ";
+  std::cout << p_EG1[1] << ", ";
+  std::cout << p_EG1[2];
   std::cout << std::endl;
 
-  std::cout << "Cosine: " << degrees(acos(cos_x)) << std::endl;
-  std::cout << "Cos Sign: " << cos_sign << std::endl;
-  std::cout << "Point Sign: " << p_sign << std::endl;
+  std::cout << "X Angle: " << thetax << std::endl;
 
   std::cout << "-------------------------------------------------------------";
   std::cout << std::endl;
