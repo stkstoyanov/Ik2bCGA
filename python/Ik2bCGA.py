@@ -80,8 +80,18 @@ class Ik2bCGA(OpenMayaMPx.MPxIkSolverNode):
         effector.pop()
         fnElbowJnt = OpenMayaAnim.MFnIkJoint(effector)
 
-        # Shoulder Joint Inverse Matrix
-        shMatrix = fnShoulderJnt.transformation().asMatrixInverse()
+        # Set preferred angles
+        shAngle = OpenMaya.MScriptUtil()
+        shAngle.createFromDouble(0.0, 0.0, 0.0);
+        shAnglePtr = shAngle.asDoublePtr()
+        elbAngle = OpenMaya.MScriptUtil()
+        elbAngle.createFromDouble(0.0, 0.0, 0.0);
+        elbAnglePtr = elbAngle.asDoublePtr()
+
+        fnShoulderJnt.getPreferedAngle(shAnglePtr)
+        fnElbowJnt.getPreferedAngle(elbAnglePtr)
+        fnShoulderJnt.setRotation(shAnglePtr, fnShoulderJnt.rotationOrder())
+        fnElbowJnt.setRotation(elbAnglePtr, fnElbowJnt.rotationOrder())
 
         shoulder = fnShoulderJnt.rotatePivot(OpenMaya.MSpace.kWorld)
         elbow = fnElbowJnt.rotatePivot(OpenMaya.MSpace.kWorld)
@@ -104,8 +114,6 @@ class Ik2bCGA(OpenMayaMPx.MPxIkSolverNode):
         self._printPoint('Wrist', wrist)
         self._printPoint('Goal', goal)
         '''
-        self._printRotation('Elbow ', rotations[0])
-        self._printRotation('Shoulder ', rotations[1])
 
 
     def _getPlugValue(self, dagNode, attribute):
