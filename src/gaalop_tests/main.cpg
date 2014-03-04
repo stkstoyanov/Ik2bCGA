@@ -53,6 +53,7 @@ int main()
     cout << endl;
 
     cout << l_n << endl;
+    cout << a << endl;
 #pragma gpc end
   return 0;
 }

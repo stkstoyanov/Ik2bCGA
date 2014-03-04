@@ -1,0 +1,80 @@
+#include <cmath>
+#include "proxy.h"
+
+#define float double
+#define abs fabs
+#define sqrtf sqrt
+
+#define radians(angleDegrees) (angleDegrees * M_PI / 180.0)
+#define degrees(angleRadians) (angleRadians * 180.0 / M_PI)
+
+extern "C"
+int preferredElbow(
+                   const VectorPx& _shoulder,
+                   const VectorPx& _elbow,
+                   const VectorPx& _wrist,
+                   const VectorPx& _pole
+                  )
+{
+  typedef double freal;
+
+  freal sx = _shoulder.x;
+  freal sy = _shoulder.y;
+  freal sz = _shoulder.z;
+
+  freal ex = _elbow.x;
+  freal ey = _elbow.y;
+  freal ez = _elbow.z;
+
+  freal wx = _wrist.x;
+  freal wy = _wrist.y;
+  freal wz = _wrist.z;
+
+  freal px = _pole.x;
+  freal py = _pole.y;
+  freal pz = _pole.z;
+
+#pragma gpc begin
+  #pragma clucalc begin
+  // setting up the initial vectors
+  v_S = sx*e1 + sy*e2 + sz*e3; // shoulder vector
+  v_E = ex*e1 + ey*e2 + ez*e3; // elbow vector
+  v_W = wx*e1 + wy*e2 + wz*e3; // wrist vector
+  v_P = px*e1 + py*e2 + pz*e3; // pole vector
+
+  // compute distances
+  v_SE = v_E - v_S;
+  v_EW = v_W - v_E;
+  v_SW = v_W - v_S;
+  se_d = sqrt(abs(v_SE*v_SE)); // upper arm length
+  ew_d = sqrt(abs(v_EW*v_EW)); // lower arm length
+
+  I3 = e1^e2^e3;
+  p_norm = -(v_P^v_SW)*I3; // pole-shoulder-wrist normal
+  a_norm = -(v_SE^v_EW)*I3; // arm plane normal
+  n_sign_t = p_norm.a_norm;
+  ?n_sign = n_sign_t / abs(n_sign_t);
+
+  // setting up the initial points
+  p_S = VecN3(sx, sy, sz); // shoulder point
+  p_E = VecN3(ex, ey, ez); // elbow point
+  p_W = VecN3(wx, wy, wz); // wrist point
+  p_P = VecN3(px, py, pz); // pole point
+
+  // compute goal elbow point
+  s_S = p_S - 0.5*se_d*se_d*einf; // shoulder sphere
+  s_W = p_W - 0.5*ew_d*ew_d*einf; // goal sphere
+  c_E = s_S^s_W;
+
+  // swivel intersection plane
+  pl_Swivel = *(p_E^p_W^p_S^einf);
+  // determine which point to pick
+  pp_E=*(c_E^pl_Swivel);
+  // flip the sign of the square root to get the second point
+  p_EG = (sqrt(abs(pp_E.pp_E)) - pp_E) / (einf.pp_E);
+  ?p_dist = p_EG.p_E;
+  #pragma clucalc end
+
+  return n_sign*(p_dist == 0 ? 1 : -1);
+#pragma gpc end
+}

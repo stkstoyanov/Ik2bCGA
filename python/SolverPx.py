@@ -44,12 +44,29 @@ class SolverPx(object):
         pass
 
 
-    def solveIK(self, shoulder, elbow, wrist, goal, pole):
+    def preferredElbow(self, shoulder, elbow, wrist, pole):
+        sh = VectorPx(shoulder.x, shoulder.y, shoulder.z)
+        elb = VectorPx(elbow.x, elbow.y, elbow.z)
+        wr = VectorPx(wrist.x, wrist.y, wrist.z)
+        p = VectorPx(pole.x, pole.y, pole.z)
+
+        pSign = lib.preferredElbow(
+                                   ctypes.byref(sh),
+                                   ctypes.byref(elb),
+                                   ctypes.byref(wr),
+                                   ctypes.byref(p),
+                                  )
+        return pSign
+
+
+    def solveIK(self, shoulder, elbow, wrist, goal, pole, twist, psign):
         sh = VectorPx(shoulder.x, shoulder.y, shoulder.z)
         elb = VectorPx(elbow.x, elbow.y, elbow.z)
         wr = VectorPx(wrist.x, wrist.y, wrist.z)
         g = VectorPx(goal.x, goal.y, goal.z)
         p = VectorPx(pole.x, pole.y, pole.z)
+        tw = ctypes.c_double(twist)
+        ps = ctypes.c_int(psign)
         elbRot = QuaternionPx()
         shRot = QuaternionPx()
 
@@ -59,6 +76,8 @@ class SolverPx(object):
                     ctypes.byref(wr),
                     ctypes.byref(g),
                     ctypes.byref(p),
+                    ctypes.byref(tw),
+                    ctypes.byref(ps),
                     ctypes.byref(elbRot),
                     ctypes.byref(shRot)
                    )

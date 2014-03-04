@@ -15,6 +15,8 @@ class Ik2bCGA(OpenMayaMPx.MPxIkSolverNode):
 
     def __init__(self):
         OpenMayaMPx.MPxIkSolverNode.__init__(self)
+        self._setPreferred = False
+        self._pSign = 1
 
 
     @staticmethod
@@ -102,8 +104,22 @@ class Ik2bCGA(OpenMayaMPx.MPxIkSolverNode):
                                self._getPlugValue(fnIkHandle, 'pvy'),
                                self._getPlugValue(fnIkHandle, 'pvz')
                               )
+        twistAngle = self._getPlugValue(fnIkHandle, 'twist')
 
-        rotations = self._SOLVER.solveIK(shoulder, elbow, wrist, goal, pole)
+        if not self._setPreferred:
+            self._setPreferred = True
+            self._pSign = self._SOLVER.preferredElbow(shoulder,
+                                                      elbow,
+                                                      wrist,
+                                                      pole)
+
+        rotations = self._SOLVER.solveIK(shoulder,
+                                         elbow,
+                                         wrist,
+                                         goal,
+                                         pole,
+                                         twistAngle,
+                                         self._pSign)
         fnElbowJnt.rotateBy(rotations[0], OpenMaya.MSpace.kWorld)
         fnShoulderJnt.rotateBy(rotations[1], OpenMaya.MSpace.kWorld)
 

@@ -12,10 +12,11 @@ set(
 set(
      SRC_DIR
      gaalop_solver.cpg
+     gaalop_util.cpg
      proxy.cpp
    )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -O2")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -O3")
 set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
 
 include_directories(${INC_DIR})
