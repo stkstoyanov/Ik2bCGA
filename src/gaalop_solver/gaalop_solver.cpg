@@ -177,9 +177,11 @@ void solveIK(
   ?cos_thetax = v_Swivel.v_YZ;
   ?q_sign = (v_EG - v_S).cross;
   #pragma clucalc end
-  freal thetax = _psign*atan2(sin_thetax, cos_thetax);
+  freal thetax = atan2(sin_thetax, cos_thetax);
   if (q_sign < 0.0)
     thetax = -thetax;
+  if (_psign == -1)
+    thetax = thetax - M_PI;
   freal q_3_cos = cos(0.5*thetax);
   freal q_3_sin = sin(0.5*thetax);
   #pragma clucalc begin

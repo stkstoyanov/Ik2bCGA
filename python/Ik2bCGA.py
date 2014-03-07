@@ -15,8 +15,7 @@ class Ik2bCGA(OpenMayaMPx.MPxIkSolverNode):
 
     def __init__(self):
         OpenMayaMPx.MPxIkSolverNode.__init__(self)
-        self._setPreferred = False
-        self._pSign = 1
+        self._preferredElbows = {}
 
 
     @staticmethod
@@ -106,12 +105,14 @@ class Ik2bCGA(OpenMayaMPx.MPxIkSolverNode):
                               )
         twistAngle = self._getPlugValue(fnIkHandle, 'twist')
 
-        if not self._setPreferred:
-            self._setPreferred = True
-            self._pSign = self._SOLVER.preferredElbow(shoulder,
-                                                      elbow,
-                                                      wrist,
-                                                      pole)
+
+        psign = self._getPreferredElbow(handlePath)
+        if psign is None:
+            psign = self._SOLVER.preferredElbow(shoulder,
+                                                elbow,
+                                                wrist,
+                                                pole)
+            self._addPreferredElbow(handlePath, psign)
 
         rotations = self._SOLVER.solveIK(shoulder,
                                          elbow,
@@ -119,7 +120,7 @@ class Ik2bCGA(OpenMayaMPx.MPxIkSolverNode):
                                          goal,
                                          pole,
                                          twistAngle,
-                                         self._pSign)
+                                         psign)
         fnElbowJnt.rotateBy(rotations[0], OpenMaya.MSpace.kWorld)
         fnShoulderJnt.rotateBy(rotations[1], OpenMaya.MSpace.kWorld)
 
@@ -130,6 +131,18 @@ class Ik2bCGA(OpenMayaMPx.MPxIkSolverNode):
         self._printPoint('Wrist', wrist)
         self._printPoint('Goal', goal)
         '''
+
+
+    def _getPreferredElbow(self, mDagPath):
+        mObj = mDagPath.node()
+        key = OpenMaya.MObjectHandle(mObj).hashCode()
+        return  self._preferredElbows.get(key)
+
+
+    def _addPreferredElbow(self, mDagPath, value):
+        mObj = mDagPath.node()
+        key = OpenMaya.MObjectHandle(mObj).hashCode()
+        self._preferredElbows.update({key:value})
 
 
     def _getPlugValue(self, dagNode, attribute):
